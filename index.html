@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="生年月日を入れるだけ。日本人の平均余命から、あと何回桜を見られるか、親や恋人とあと何日過ごせるかを数えます。">
+<meta name="theme-color" content="#0b0d17">
+<meta property="og:type" content="website">
+<meta property="og:title" content="あと何回">
+<meta property="og:description" content="生年月日を入れるだけ。日本人の平均余命から、あと何回桜を見られるか、親や恋人とあと何日過ごせるかを数えます。">
+<meta property="og:url" content="https://jwllxaxxx-ux.github.io/atonankai/">
+<meta property="og:image" content="https://jwllxaxxx-ux.github.io/atonankai/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23ff8fab'/%3E%3C/svg%3E">
+<title>あと何回</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* 夜桜。墨の夜に、桜色ひとつ。一章ひとつの数字を、大きな明朝で見せる。 */
+:root{
+  --bg:#f5f0e8; --paper:#fffdf9; --ink:#2a2530; --sub:#6e6672; --line:#e3dcd0;
+  --sakura:#c7375e; --sakura-soft:#f3d2db; --past:#d9d2c7; --glow:rgba(199,55,94,.10); --petal:#efb3c3;
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b0d17; --paper:#141727; --ink:#eeecf4; --sub:#9a9cb3; --line:#242a3e;
+  --sakura:#ff8fab; --sakura-soft:#4b2436; --past:#2c3146; --glow:rgba(255,143,171,.13); --petal:#ffb3c6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0d17; --paper:#141727; --ink:#eeecf4; --sub:#9a9cb3; --line:#242a3e;
+  --sakura:#ff8fab; --sakura-soft:#4b2436; --past:#2c3146; --glow:rgba(255,143,171,.13); --petal:#ffb3c6; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(120% 60% at 50% 0%,var(--glow),transparent 70%) no-repeat,var(--bg);
+  color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:64px;overflow-x:hidden}
+.wrap{max-width:760px;margin:0 auto;position:relative;z-index:1}
+.num{font-variant-numeric:tabular-nums}
+b{font-weight:800}
+
+/* 花びら */
+.petals{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.petals i{position:absolute;top:-24px;width:12px;height:9px;background:var(--petal);border-radius:100% 0 100% 0;opacity:.55;animation:fall linear infinite}
+@keyframes fall{0%{transform:translate(0,-5vh) rotate(0)}50%{transform:translate(40px,50vh) rotate(260deg)}100%{transform:translate(-10px,108vh) rotate(540deg)}}
+@media (prefers-reduced-motion:reduce){.petals{display:none}}
+
+/* 表紙 */
+.cover{min-height:92svh;display:grid;align-content:center;justify-items:start;gap:22px;padding-block:48px 24px}
+.kicker{font-size:13px;letter-spacing:.2em;color:var(--sub);margin:0}
+.cover h1{font-family:var(--display);font-weight:800;font-size:clamp(72px,21vw,148px);line-height:1;margin:0;letter-spacing:.04em}
+.cover h1 span{color:var(--sakura)}
+.cover .lead{font-family:var(--display);font-weight:500;font-size:clamp(17px,4.4vw,21px);line-height:1.9;margin:0;max-width:24em}
+.go{font:inherit;font-weight:700;font-size:15px;color:var(--bg);background:var(--ink);border:0;border-radius:999px;padding:13px 28px;text-decoration:none;display:inline-flex;gap:10px;align-items:center}
+.go::after{content:"↓"}
+/* 結果を見る */
+.cta{display:grid;justify-items:center;gap:14px;padding-block:44px 8px;text-align:center}
+.reveal{font:inherit;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:.08em;color:#fff;background:var(--sakura);border:0;border-radius:999px;padding:18px 44px;cursor:pointer;box-shadow:0 10px 30px -8px var(--sakura)}
+.reveal:disabled{opacity:.6;cursor:default}
+.cta .hint{min-height:1.5em}
+.counting{display:flex;gap:10px;justify-content:center;height:14px}
+.counting i{width:10px;height:10px;border-radius:50%;background:var(--sakura);opacity:.25}
+@media (prefers-reduced-motion:no-preference){.counting i{animation:blink 1s ease-in-out infinite}.counting i:nth-child(2){animation-delay:.15s}.counting i:nth-child(3){animation-delay:.3s}}
+@keyframes blink{50%{opacity:1;transform:translateY(-4px)}}
+.locked #res,.locked .share{display:none}
+
+/* 入力 */
+form{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px;display:grid;gap:22px;scroll-margin-top:16px}
+.grp{display:grid;gap:14px}
+.grp+.grp{border-top:1px solid var(--line);padding-top:20px}
+.grp h3{margin:0;font-family:var(--display);font-weight:800;font-size:19px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+label{display:grid;gap:6px;font-size:13px;color:var(--sub);font-weight:500;min-width:0}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--sakura);outline-offset:2px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg input{position:absolute;opacity:0;pointer-events:none;width:auto}
+.seg label{display:block;padding:7px 15px;border:1px solid var(--line);border-radius:999px;color:var(--ink);font-size:14px;cursor:pointer;background:var(--bg)}
+.seg input:checked+label{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg input:focus-visible+label{outline:2px solid var(--sakura);outline-offset:2px}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:8px;min-width:0}
+legend{font-size:13px;color:var(--sub);font-weight:500;padding:0;margin-bottom:6px}
+.tag{font-family:var(--body);font-size:12px;font-weight:500;color:var(--sakura);border:1px solid var(--sakura);border-radius:999px;padding:0 9px}
+.opt{font-size:12px;color:var(--sub)}
+[hidden]{display:none!important}
+
+/* 章 */
+.ch{min-height:72svh;display:grid;align-content:center;gap:22px;padding-block:72px;border-bottom:1px solid var(--line)}
+.ch .no{margin:0;font-size:13px;letter-spacing:.2em;color:var(--sub);display:flex;align-items:center;gap:12px}
+.ch .no b{color:var(--sakura);font-weight:700}
+.ch .no::after{content:"";height:1px;width:48px;background:var(--line)}
+.say{font-family:var(--display);font-weight:800;font-size:clamp(30px,8vw,52px);line-height:1.35;margin:0;text-wrap:balance}
+.say b{color:var(--sakura);font-size:1.7em;line-height:1;letter-spacing:.01em}
+.say small{font-size:.62em}
+.foot{margin:0;color:var(--sub);font-size:14px;max-width:36em}
+.foot b{color:var(--ink)}
+
+.dots{display:grid;grid-template-columns:repeat(auto-fill,minmax(18px,1fr));gap:7px}
+.dots i{display:block;aspect-ratio:1;border-radius:50%;background:var(--past)}
+.dots i.on{background:var(--sakura)}
+.dots i.now{background:var(--sakura);box-shadow:0 0 0 4px var(--sakura-soft)}
+.dots.hund{grid-template-columns:repeat(10,1fr);max-width:300px;gap:8px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin:0}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--past)}
+.legend span.l::before{background:var(--sakura)}
+
+.mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.mini div{padding:14px 10px 12px;display:grid;gap:2px;min-width:0}
+.mini div+div{border-left:1px solid var(--line)}
+.mini .k{font-size:12px;color:var(--sub)}
+.mini .v{font-family:var(--display);font-weight:800;font-size:clamp(22px,6vw,32px);line-height:1.3}
+.mini .v small{font-family:var(--body);font-size:12px;font-weight:500;margin-left:2px}
+.mini .n{font-size:11px;color:var(--sub);line-height:1.5}
+
+/* 星と日食 */
+.glint{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 6px 2px #fff,0 0 22px 6px var(--sakura);margin:6px 0 0 4px}
+@media (prefers-reduced-motion:no-preference){.glint{animation:tw 3.2s ease-in-out infinite}}
+@keyframes tw{50%{opacity:.45;transform:scale(.8)}}
+.corona{width:96px;height:96px;border-radius:50%;background:#07080f;box-shadow:0 0 0 1.5px rgba(255,246,235,.85),0 0 26px 6px rgba(255,236,214,.55),0 0 80px 22px rgba(255,190,170,.22)}
+.evs{display:grid;border-top:1px solid var(--line)}
+.ev{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:14px 2px;border-bottom:1px solid var(--line);align-items:baseline}
+.ev .d{font-family:var(--display);font-weight:800;font-size:clamp(19px,5vw,24px)}
+.ev .w{font-size:13px;color:var(--sub);grid-column:1}
+.ev .p{font-family:var(--display);font-weight:800;font-size:clamp(24px,6.5vw,32px);color:var(--sakura);grid-row:1/3;grid-column:2;text-align:right;line-height:1.2}
+.ev .p small{display:block;font-family:var(--body);font-size:11px;font-weight:500;color:var(--sub)}
+.bar{height:14px;border-radius:999px;background:var(--past);overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.bar .rest{background:var(--sakura);margin-left:auto}
+.barlab{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--sub);flex-wrap:wrap}
+
+/* 共有 */
+.share{display:grid;gap:14px;padding-block:64px 32px}
+.share h2{font-family:var(--display);font-weight:800;font-size:clamp(26px,6vw,34px);margin:0}
+.share img{width:100%;border-radius:14px;border:1px solid var(--line);display:block}
+.sharetext{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;white-space:pre-wrap;font-size:15px;margin:0}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-size:15px;font-weight:700;border-radius:999px;padding:11px 22px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink)}
+.hint{font-size:13px;color:var(--sub);margin:0}
+.note{font-size:13px;color:var(--sub);border-top:1px solid var(--line);padding-top:20px;display:grid;gap:8px}
+.note p{margin:0}
+.note a{color:var(--sub)}
+
+/* 出てくる動き */
+@media (prefers-reduced-motion:no-preference){
+  .js .ch>*{opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease}
+  .js .ch.in>*{opacity:1;transform:none}
+  .js .ch.in>*:nth-child(2){transition-delay:.12s}
+  .js .ch.in>*:nth-child(3){transition-delay:.3s}
+  .js .ch.in>*:nth-child(4){transition-delay:.45s}
+  .js .ch.in>*:nth-child(5){transition-delay:.6s}
+}
+</style>
+</head>
+<body>
+
+<div class="petals" id="petals" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="cover">
+    <h1>あと<span>何</span>回</h1>
+    <p class="lead">桜を見られるのは、あと何回だろう。<br>親と過ごせるのは、あと何日だろう。<br>平均余命から、静かに数えてみます。</p>
+    <a class="go" href="#f">数えてみる</a>
+  </header>
+
+  <form id="f" autocomplete="off">
+    <div class="grp">
+      <h3>あなた <span class="tag" id="exTag">例の値</span></h3>
+      <div class="row">
+        <label for="birth">生年月日
+          <input type="date" id="birth" min="1920-01-01" required>
+        </label>
+        <fieldset>
+          <legend>性別</legend>
+          <div class="seg">
+            <input type="radio" name="sex" id="sexF" value="f"><label for="sexF">女性</label>
+            <input type="radio" name="sex" id="sexM" value="m"><label for="sexM">男性</label>
+            <input type="radio" name="sex" id="sexX" value="x"><label for="sexX">答えない</label>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>親</h3>
+      <div class="row">
+        <label for="pAge">親の年齢
+          <input type="number" id="pAge" min="20" max="110" inputmode="numeric">
+        </label>
+        <label for="pSex">どちらの親
+          <select id="pSex"><option value="f">母</option><option value="m">父</option></select>
+        </label>
+        <label for="visits">年に会う回数
+          <input type="number" id="visits" min="0" max="365" inputmode="numeric">
+        </label>
+        <label for="perVisit">1回に一緒にいる日数
+          <input type="number" id="perVisit" min="0.5" max="60" step="0.5" inputmode="decimal">
+        </label>
+        <label for="liveTil">何歳まで一緒に暮らしたか
+          <input type="number" id="liveTil" min="0" max="80" inputmode="numeric">
+        </label>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>恋人・パートナー</h3>
+      <fieldset>
+        <legend>いますか？</legend>
+        <div class="seg">
+          <input type="radio" name="has" id="hasY" value="y"><label for="hasY">いる</label>
+          <input type="radio" name="has" id="hasN" value="n"><label for="hasN">いない</label>
+        </div>
+      </fieldset>
+      <div class="row" id="partnerIn">
+        <label for="nick">呼び方
+          <input type="text" id="nick" maxlength="8" placeholder="恋人">
+        </label>
+        <label for="qBirth">相手の生年月日
+          <input type="date" id="qBirth" min="1920-01-01">
+        </label>
+        <label for="qSex">相手の性別
+          <select id="qSex"><option value="m">男性</option><option value="f">女性</option><option value="x">答えない</option></select>
+        </label>
+        <label for="since">付き合い始めた日 <span class="opt">（なくても可）</span>
+          <input type="date" id="since" min="1940-01-01">
+        </label>
+        <label for="freq">会う頻度
+          <select id="freq">
+            <option value="365">一緒に住んでいる</option>
+            <option value="156">週に3回くらい</option>
+            <option value="104">週に2回くらい</option>
+            <option value="52">週に1回くらい</option>
+            <option value="24">月に2回くらい</option>
+            <option value="12">月に1回くらい</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </form>
+
+  <div class="cta" id="cta">
+    <button type="button" class="reveal" id="show">結果を見る</button>
+    <div class="counting" id="counting" hidden aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="hint" id="ctaMsg">入力した内容は、どこにも送られません。</p>
+  </div>
+
+  <main id="res" aria-live="polite">
+    <section class="ch">
+      <p class="no"><b>01</b>春</p>
+      <p class="say" id="sayS"></p>
+      <div class="dots" id="springs" role="img"></div>
+      <p class="legend"><span>これまでの春 <b class="num" id="pastS"></b>回</span><span class="l">これからの春 <b class="num" id="leftS"></b>回</span></p>
+    </section>
+
+    <section class="ch">
+      <p class="no"><b>02</b>時間</p>
+      <p class="say" id="sayT"></p>
+      <div class="mini" id="mini"></div>
+      <p class="foot" id="footT"></p>
+    </section>
+
+    <section class="ch">
+      <p class="no"><b>03</b>長生き</p>
+      <p class="say" id="sayP"></p>
+      <div class="dots hund" id="hund" role="img"></div>
+      <p class="foot" id="footP"></p>
+    </section>
+
+    <section class="ch">
+      <p class="no"><b>04</b>同じ日</p>
+      <p class="say" id="sayB"></p>
+      <p class="foot" id="footB"></p>
+    </section>
+
+    <section class="ch" id="chParent">
+      <p class="no"><b>05</b>親</p>
+      <p class="say" id="sayO"></p>
+      <div class="bar" id="barO" role="img"><span class="rest" id="barRest"></span></div>
+      <div class="barlab"><span id="labUsed"></span><span id="labRest"></span></div>
+      <p class="foot" id="footO"></p>
+    </section>
+
+    <section class="ch" id="chLove">
+      <p class="no"><b>06</b><span id="loveTitle">ふたり</span></p>
+      <p class="say" id="sayL"></p>
+      <div class="dots" id="loveDots" role="img"></div>
+      <div class="mini" id="miniL"></div>
+      <p class="foot" id="footL"></p>
+    </section>
+    <section class="ch" id="chStar">
+      <p class="no"><b>07</b>星の光</p>
+      <div class="glint" aria-hidden="true"></div>
+      <p class="say" id="sayStar"></p>
+      <div class="mini" id="miniStar"></div>
+      <p class="foot" id="footStar"></p>
+    </section>
+
+    <section class="ch" id="chEcl">
+      <p class="no"><b>08</b>皆既日食</p>
+      <div class="corona" aria-hidden="true"></div>
+      <p class="say" id="sayEcl"></p>
+      <div class="evs" id="evs"></div>
+      <p class="foot" id="footEcl"></p>
+    </section>
+  </main>
+
+  <section class="share">
+    <h2>あなたは、あと何回？</h2>
+    <img id="card" alt="結果のカード画像">
+    <p class="hint">画像を長押し（パソコンは右クリック）すると保存できます。</p>
+    <p class="sharetext" id="shareText"></p>
+    <div class="btns">
+      <button type="button" class="btn" id="nshare" hidden>共有する</button>
+      <button type="button" class="btn" id="copy">文章とリンクをコピー</button>
+      <a class="btn ghost" id="xpost" target="_blank" rel="noopener">Xに投稿する</a>
+      <a class="btn ghost" id="tpost" target="_blank" rel="noopener">Threadsに投稿する</a>
+    </div>
+  </section>
+
+  <footer class="note">
+    <p>ここに出る数字は、同じ年齢・性別の日本人の平均です。あなた自身の寿命を予測するものではありません。</p>
+    <p>親との日数は、あなたと親のどちらか短いほうの平均余命のあいだ、今のペースで会い続けた場合の目安です。ふたりの数字は、二人の寿命がそれぞれ独立だとみなして、毎年「二人とも生きている確率」を足し合わせた期待値です。同い年の人数は、出生数に出生性比（男105：女100）と生命表の生存率をかけた推計で、海外との出入りは含みません。「運命の人に出会える確率」は、今結婚していない同年齢の人のうち50歳までに結婚する割合を、2020年の年齢別未婚率から推計したお遊びの目安です。今の若い世代は上の世代より未婚率が高いため、実際より高めに出ている可能性があります。</p>
+    <p>出典：厚生労働省「<a href="https://www.mhlw.go.jp/toukei/saikin/hw/life/life25/index.html" target="_blank" rel="noopener">令和7年簡易生命表</a>」（平均余命・生存数）、「<a href="https://www.mhlw.go.jp/toukei/saikin/hw/jinkou/geppo/nengai25/dl/toukeihyou.pdf" target="_blank" rel="noopener">令和7年人口動態統計月報年計（概数）</a>」（年ごとの出生数。1944〜1946年は資料なし）、総務省「<a href="https://www.gender.go.jp/kaigi/kento/Marriage-Family/8th/pdf/1.pdf" target="_blank" rel="noopener">令和2年国勢調査</a>」（年齢別未婚率）、国立社会保障・人口問題研究所「<a href="https://www.ipss.go.jp/ps-doukou/j/db_17/db_17GaiyoBaseData.html" target="_blank" rel="noopener">第17回出生動向基本調査</a>」（知り合った年齢・交際期間・出会いのきっかけ）、名古屋市科学館「<a href="https://www.ncsm.city.nagoya.jp/study/astro/major_stars_data.pdf" target="_blank" rel="noopener">主な恒星のデータ</a>」（星までの距離）、作花一志「<a href="https://www.kcg.ac.jp/kcg/sakka/kwasan/astron/07sakka1.pdf" target="_blank" rel="noopener">わが国で見られる20世紀21世紀の大日食</a>」（皆既日食）。桜は毎年4月上旬に見るものとして数えています。</p>
+    <p>入力した内容は、このブラウザの中だけで計算し、どこにも送りません。</p>
+  </footer>
+</div>
+
+<script>
+const LIFE={"m":{"ex":[81.35,80.51,79.53,78.55,77.56,76.57,75.58,74.58,73.59,72.59,71.6,70.6,69.61,68.61,67.62,66.63,65.64,64.66,63.67,62.69,61.72,60.74,59.77,58.8,57.82,56.85,55.88,54.9,53.93,52.96,51.98,51.01,50.04,49.06,48.09,47.12,46.16,45.19,44.22,43.26,42.29,41.33,40.38,39.42,38.47,37.52,36.57,35.63,34.69,33.75,32.82,31.9,30.98,30.06,29.16,28.26,27.36,26.47,25.59,24.72,23.86,23.01,22.16,21.32,20.5,19.68,18.88,18.09,17.31,16.54,15.78,15.04,14.31,13.6,12.91,12.24,11.58,10.94,10.31,9.69,9.1,8.53,7.98,7.45,6.94,6.44,5.97,5.53,5.11,4.73,4.38,4.06,3.74,3.45,3.16,2.9,2.65,2.42,2.2,2,1.81,1.64,1.48,1.34,1.21,1.08],"lx":[100000,99800,99770,99748,99733,99721,99712,99704,99697,99691,99686,99680,99673,99664,99652,99637,99618,99597,99571,99540,99504,99463,99419,99372,99325,99278,99231,99185,99138,99089,99038,98987,98934,98878,98818,98754,98687,98617,98543,98463,98377,98284,98184,98075,97957,97829,97690,97538,97372,97188,96984,96757,96506,96232,95932,95603,95241,94843,94403,93918,93387,92811,92183,91495,90733,89892,88971,87973,86896,85729,84453,83051,81511,79824,77986,75991,73836,71531,69079,66461,63651,60631,57407,54005,50468,46795,42972,39003,34918,30790,26705,22749,19076,15686,12616,9897,7546,5572,3968,2712,1770,1095,639,348,176,82]},"f":{"ex":[87.33,86.48,85.51,84.52,83.53,82.54,81.54,80.55,79.55,78.56,77.56,76.57,75.57,74.58,73.59,72.6,71.61,70.62,69.64,68.66,67.67,66.69,65.71,64.73,63.75,62.77,61.78,60.8,59.82,58.83,57.85,56.87,55.88,54.9,53.92,52.94,51.96,50.98,50,49.03,48.05,47.08,46.11,45.14,44.17,43.2,42.24,41.28,40.32,39.36,38.41,37.46,36.51,35.57,34.64,33.7,32.77,31.84,30.91,29.99,29.07,28.15,27.24,26.33,25.42,24.52,23.63,22.74,21.85,20.97,20.1,19.24,18.39,17.54,16.7,15.88,15.07,14.27,13.48,12.71,11.95,11.21,10.49,9.8,9.12,8.47,7.85,7.26,6.69,6.16,5.66,5.18,4.75,4.34,3.95,3.58,3.23,2.9,2.59,2.31,2.05,1.81,1.59,1.39,1.22,1.06],"lx":[100000,99827,99800,99782,99771,99763,99757,99750,99744,99738,99731,99725,99718,99710,99699,99685,99668,99649,99626,99601,99574,99544,99514,99486,99459,99432,99404,99376,99349,99323,99297,99269,99240,99209,99175,99138,99099,99056,99011,98964,98913,98858,98799,98735,98665,98588,98504,98413,98314,98207,98088,97957,97811,97651,97479,97293,97095,96884,96658,96416,96157,95880,95581,95260,94912,94533,94119,93673,93190,92664,92083,91440,90733,89956,89100,88149,87087,85906,84596,83140,81514,79692,77646,75351,72795,69950,66786,63284,59444,55282,50819,46087,41153,36124,31136,26352,21769,17482,13575,10130,7212,4856,3060,1783,947,451]}};
+const BIRTHS={"1910":1712857,"1911":1747803,"1912":1737674,"1913":1757441,"1914":1808402,"1915":1799326,"1916":1804822,"1917":1812413,"1918":1791992,"1919":1778685,"1920":2025564,"1921":1990876,"1922":1969314,"1923":2043297,"1924":1998520,"1925":2086091,"1926":2104405,"1927":2060737,"1928":2135852,"1929":2077026,"1930":2085101,"1931":2102784,"1932":2182742,"1933":2121253,"1934":2043783,"1935":2190704,"1936":2101969,"1937":2180734,"1938":1928321,"1939":1901573,"1940":2115867,"1941":2277283,"1942":2233660,"1943":2253535,"1947":2678792,"1948":2681624,"1949":2696638,"1950":2337507,"1951":2137689,"1952":2005162,"1953":1868040,"1954":1769580,"1955":1730692,"1956":1665278,"1957":1566713,"1958":1653469,"1959":1626088,"1960":1606041,"1961":1589372,"1962":1618616,"1963":1659521,"1964":1716761,"1965":1823697,"1966":1360974,"1967":1935647,"1968":1871839,"1969":1889815,"1970":1934239,"1971":2000973,"1972":2038682,"1973":2091983,"1974":2029989,"1975":1901440,"1976":1832617,"1977":1755100,"1978":1708643,"1979":1642580,"1980":1576889,"1981":1529455,"1982":1515392,"1983":1508687,"1984":1489780,"1985":1431577,"1986":1382946,"1987":1346658,"1988":1314006,"1989":1246802,"1990":1221585,"1991":1223245,"1992":1208989,"1993":1188282,"1994":1238328,"1995":1187064,"1996":1206555,"1997":1191665,"1998":1203147,"1999":1177669,"2000":1190547,"2001":1170662,"2002":1153855,"2003":1123610,"2004":1110721,"2005":1062530,"2006":1092674,"2007":1089818,"2008":1091156,"2009":1070036,"2010":1071305,"2011":1050807,"2012":1037232,"2013":1029817,"2014":1003609,"2015":1005721,"2016":977242,"2017":946146,"2018":918400,"2019":865239,"2020":840835,"2021":811622,"2022":770759,"2023":727288,"2024":686173,"2025":671236};
+
+document.documentElement.classList.add('js');
+const $ = id => document.getElementById(id);
+const DAY = 86400000, YEAR = 365.2425;
+const EX = {f: LIFE.f.ex, m: LIFE.m.ex}, LX = {f: LIFE.f.lx, m: LIFE.m.lx};
+const fmt = n => Math.round(n).toLocaleString('ja-JP');
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function interp(arr, age){
+  const a = Math.max(0, Math.min(arr.length - 1, Math.floor(age)));
+  if (a >= arr.length - 1) return arr[arr.length - 1];
+  const f = age - a; return arr[a] + (arr[a + 1] - arr[a]) * f;
+}
+function ex1(sex, age){ return interp(EX[sex], age); }
+function ex(sex, age){ return sex === 'x' ? (ex1('f', age) + ex1('m', age)) / 2 : ex1(sex, age); }
+function lx1(sex, a){ // 105歳より先は、105歳の平均余命で指数的に減らす
+  if (a <= 105) return interp(LX[sex], a);
+  return LX[sex][105] * Math.exp(-(a - 105) / EX[sex][105]);
+}
+function lx(sex, a){ return sex === 'x' ? (lx1('f', a) + lx1('m', a)) / 2 : lx1(sex, a); }
+function surv(sex, age, t){ return lx(sex, age + t) / lx(sex, age); }
+function countDates(from, to, month, day){ // from < date <= to
+  let c = 0; for (let y = from.getFullYear(); y <= to.getFullYear(); y++){ const d = new Date(y, month, day); if (d > from && d <= to) c++; } return c;
+}
+// 2020年国勢調査 年齢別未婚率（%）・第17回出生動向基本調査（2025）
+const UNM = {age:[20,25,30,35,40,45,50], m:[98.7,85.2,55.2,38.4,30.5,27.8,25.9], f:[97.8,77.5,42.8,26.8,20.4,18.2,16.4]};
+function unm(sex, a){
+  if (sex === 'x') return (unm('m', a) + unm('f', a)) / 2;
+  const A = UNM.age, v = UNM[sex], x = Math.max(20, Math.min(50, a));
+  for (let i = 0; i < A.length - 1; i++) if (x <= A[i + 1]) return v[i] + (v[i + 1] - v[i]) * (x - A[i]) / (A[i + 1] - A[i]);
+  return v[v.length - 1];
+}
+const MEET = {m: 26.2, f: 24.8, x: 25.5};
+// 主な恒星までの距離（名古屋市科学館「主な恒星のデータ」）。日本から見える星だけ
+const STARS = [
+  ['シリウス', 8.6, '冬の夜空でいちばん明るい星'], ['プロキオン', 11, '冬の大三角のひとつ'],
+  ['アルタイル', 17, '七夕の彦星'], ['ベガ', 25, '七夕の織姫星'], ['ポルックス', 34, 'ふたご座の弟の星'],
+  ['アルクトゥルス', 37, '春の夜に高く光る、オレンジ色の星'], ['カペラ', 43, '冬の北の空に光る星'],
+  ['カストル', 51, 'ふたご座の兄の星'], ['アルデバラン', 67, 'おうし座の赤い目'],
+  ['レグルス', 79, 'しし座の心臓'], ['スピカ', 250, '春の真珠星']];
+// 今世紀、日本の陸地で見られる皆既日食
+const ECL = [['2035-09-02', '能登半島から北関東にかけて'], ['2063-08-24', '青森県北部・北海道南部']];
+function ymd(d){ return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`; }
+function yearsJa(e){ const y = Math.floor(e), mo = Math.round((e - y) * 12); return mo === 12 ? `${y + 1}<small>年</small>` : `${y}<small>年</small>${mo ? mo + '<small>か月</small>' : ''}`; }
+
+const DEFAULTS = {birth:'1990-05-14', sex:'f', pAge:62, pSex:'f', visits:2, perVisit:3, liveTil:18,
+  has:'y', nick:'恋人', qBirth:'1989-09-02', qSex:'m', since:'2019-07-07', freq:'104'};
+let isExample = true;
+
+function load(){
+  let v = {...DEFAULTS};
+  try { const s = JSON.parse(localStorage.getItem('atonankai') || 'null'); if (s) { v = {...v, ...s}; isExample = false; } } catch(e){}
+  for (const k of ['birth','pAge','pSex','visits','perVisit','liveTil','nick','qBirth','qSex','since','freq']) $(k).value = v[k];
+  for (const [n, val] of [['sex', v.sex], ['has', v.has]]){ const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; }
+  const t = new Date().toISOString().slice(0,10); $('birth').max = t; $('qBirth').max = t; $('since').max = t;
+}
+function read(){
+  const rv = n => (document.querySelector(`input[name=${n}]:checked`)||{}).value;
+  return { birth: $('birth').value, sex: rv('sex') || 'x',
+    pAge: +$('pAge').value, pSex: $('pSex').value, visits: Math.max(0, +$('visits').value || 0),
+    perVisit: Math.max(0, +$('perVisit').value || 0), liveTil: Math.max(0, +$('liveTil').value || 0),
+    has: rv('has') || 'n', nick: $('nick').value.trim(), qBirth: $('qBirth').value, qSex: $('qSex').value,
+    since: $('since').value, freq: $('freq').value };
+}
+
+function calc(v){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const b = new Date(v.birth + 'T00:00:00');
+  if (isNaN(b) || b > today) return null;
+  const age = (today - b) / DAY / YEAR;
+  const e = ex(v.sex, age);
+  const end = new Date(today.getTime() + e * YEAR * DAY);
+  const springsLeft = countDates(today, end, 3, 5);
+  const springsPast = countDates(new Date(b.getTime() - DAY), today, 3, 5);
+  const daysLeft = e * YEAR;
+  const target = age < 85 ? 90 : 100;
+  const pTarget = Math.min(1, surv(v.sex, age, target - age));
+  const by = b.getFullYear(), births = BIRTHS[by];
+  const sameDayAlive = births ? births / 365 * lx(v.sex === 'x' ? 'x' : v.sex, age) / 100000 : null;
+
+  // 親
+  let parent = null;
+  if (v.pAge >= 15 && v.pAge <= 110){
+    const ep = ex1(v.pSex, v.pAge), overlap = Math.min(e, ep), meet = v.visits * v.perVisit;
+    let future, past;
+    if (age < v.liveTil){
+      const stay = Math.min(overlap, v.liveTil - age);
+      future = stay * 365 + Math.max(0, overlap - stay) * meet; past = age * 365;
+    } else {
+      future = overlap * meet; past = v.liveTil * 365 + (age - v.liveTil) * meet;
+    }
+    parent = {ep, overlap, future, past, meet, share: past / Math.max(1, past + future), who: v.pSex === 'f' ? '母' : '父'};
+  }
+
+  // ふたり
+  let love = null;
+  const qb = new Date(v.qBirth + 'T00:00:00');
+  if (v.has === 'y' && !isNaN(qb) && qb <= today){
+    const qAge = (today - qb) / DAY / YEAR;
+    const both = t => surv(v.sex, age, t) * surv(v.qSex, qAge, t);
+    let years = 0; for (let t = 0; t < 125 - Math.min(age, qAge); t += 0.05) years += both(t + 0.025) * 0.05;
+    const dots = []; let springs = 0;
+    for (let y = today.getFullYear(); y < today.getFullYear() + 120; y++){
+      const d = new Date(y, 3, 5); if (d <= today) continue;
+      const p = both((d - today) / DAY / YEAR); springs += p;
+      if (p >= 0.03 && dots.length < 100) dots.push(p);
+    }
+    const s = new Date(v.since + 'T00:00:00');
+    let since = null;
+    if (!isNaN(s) && s <= today){
+      const dayN = Math.floor((today - s) / DAY) + 1;
+      const m = dayN % 1000 === 0 ? dayN : Math.ceil(dayN / 1000) * 1000;
+      const mDate = new Date(s.getTime() + (m - 1) * DAY);
+      const g = new Date(s); g.setFullYear(s.getFullYear() + 50);
+      const tG = (g - today) / DAY / YEAR;
+      since = {dayN, m, mDate, isToday: m === dayN, gold: g, pGold: tG > 0 ? both(tG) : null};
+    }
+    love = {qAge, years, springs, dots, days: years * (+v.freq), freq: +v.freq, since, nick: v.nick || '恋人'};
+  }
+  // 同い年で今も生きている（相手がいない時に出す）
+  let peers = null;
+  if (births){
+    const bySex = {m: births * 105 / 205, f: births * 100 / 205};
+    if (v.sex === 'x') peers = {n: births * lx('x', age) / 100000, label: '同い年で、今も生きている人'};
+    else { const o = v.sex === 'f' ? 'm' : 'f'; peers = {n: bySex[o] * lx1(o, age) / 100000, label: '同い年で、今も生きている異性'}; }
+  }
+
+  // 星の光
+  const past = STARS.filter(s => s[1] <= age + 1).pop() || null;
+  const next = STARS.find(s => s[1] > age + 1) || null;
+  // 皆既日食
+  const ecl = ECL.map(([d, w]) => { const dt = new Date(d + 'T00:00:00'), tt = (dt - today) / DAY / YEAR;
+    return {dt, w, ageThen: age + tt, p: tt > 0 ? surv(v.sex, age, tt) : 0}; }).filter(o => o.dt > today);
+  const fate = !love && age < 50 ? Math.max(0, 1 - unm(v.sex, 50) / unm(v.sex, age)) : null;
+  return {age, e, end, springsLeft, springsPast, daysLeft, target, pTarget, by, births, sameDayAlive, parent, love, peers, fate, past, next, ecl,
+    weekends: Math.floor(daysLeft / 7), newyears: countDates(today, end, 0, 1), moons: e * 12.3683, lived: (today - b) / DAY};
+}
+
+function dotGrid(el, n, cls){ // cls(i) -> className
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < n; i++){ const d = document.createElement('i'); const c = cls(i); if (c) d.className = c; frag.appendChild(d); }
+  el.replaceChildren(frag);
+}
+const big = (n, fixed) => `<b class="num" data-to="${n}"${fixed ? ` data-fx="${fixed}"` : ''}>${fixed ? n.toFixed(fixed) : fmt(n)}</b>`;
+
+function render(){
+  const v = read(), r = calc(v);
+  $('exTag').hidden = !isExample;
+  $('partnerIn').hidden = v.has !== 'y';
+  if (!r){ $('sayS').textContent = '生年月日を入れてください。'; return; }
+
+  // 01 春
+  $('sayS').innerHTML = `あと約${big(r.springsLeft)}回、<br>桜を見られる。`;
+  $('pastS').textContent = r.springsPast; $('leftS').textContent = r.springsLeft;
+  dotGrid($('springs'), r.springsPast + r.springsLeft, i => i === r.springsPast ? 'now' : i > r.springsPast ? 'on' : '');
+  $('springs').setAttribute('aria-label', `これまでの春${r.springsPast}回、これからの春${r.springsLeft}回`);
+
+  // 02 時間
+  $('sayT').innerHTML = `残された時間は、<br>約${yearsJa(r.e).replace(/(\d+)/, m => big(+m))}。`;
+  $('mini').innerHTML = `
+    <div><span class="k">週末</span><span class="v num">${fmt(r.weekends)}<small>回</small></span><span class="n">土曜日の数</span></div>
+    <div><span class="k">年越し</span><span class="v num">${r.newyears}<small>回</small></span><span class="n">元日を迎える</span></div>
+    <div><span class="k">満月</span><span class="v num">${fmt(r.moons)}<small>回</small></span><span class="n">約29.5日ごと</span></div>`;
+  $('footT').innerHTML = `日数にすると約<b>${fmt(r.daysLeft)}</b>日。生まれてから今日までに、もう<b>${fmt(r.lived)}</b>日を過ごしました。`;
+
+  // 03 長生き
+  const pc = Math.round(r.pTarget * 100);
+  $('sayP').innerHTML = `${r.target}歳を迎える確率は、<br>${big(pc)}<small>%</small>。`;
+  dotGrid($('hund'), 100, i => i < pc ? 'on' : '');
+  $('hund').setAttribute('aria-label', `100人のうち${pc}人`);
+  $('footP').textContent = `今のあなたと同じ年齢・性別の人が100人いたら、${r.target}歳の誕生日を迎えるのは約${pc}人です。`;
+
+  // 04 同じ日
+  if (r.births){
+    $('sayB').innerHTML = `あなたと同じ日に<br>生まれた人は、約${big(r.births / 365)}人。`;
+    $('footB').innerHTML = `${r.by}年に生まれたのは約<b>${fmt(r.births)}</b>人。そのうち同じ日生まれで今も生きているのは、約<b>${fmt(r.sameDayAlive)}</b>人と見込まれます。`;
+  } else {
+    $('sayB').innerHTML = `${r.by}年の出生数は、<br>記録に残っていません。`;
+    $('footB').textContent = '1944〜1946年は戦争の影響で、全国の出生数の資料が欠けています。';
+  }
+
+  // 05 親
+  const p = r.parent;
+  $('chParent').hidden = !p;
+  if (p){
+    const usedPct = Math.round(p.share * 100), restPct = 100 - usedPct;
+    $('sayO').innerHTML = `${p.who}と過ごせるのは、<br>あと約${big(p.future)}日。`;
+    $('barRest').style.width = restPct + '%';
+    $('barO').setAttribute('aria-label', `使った時間${usedPct}%、残り${restPct}%`);
+    $('labUsed').textContent = `これまで ${fmt(p.past)}日（${usedPct}%）`;
+    $('labRest').textContent = `これから ${restPct}%`;
+    $('footO').innerHTML = `親と過ごせる時間の<b>${usedPct}%</b>を、もう使ったことになります。今のペース（年に約${fmt(p.meet)}日）が続いた場合の目安です。`;
+  }
+
+  // 06 ふたり
+  const L = r.love, nick = esc(L ? L.nick : '');
+  if (L){
+    $('sayL').innerHTML = `${nick}と一緒に見られる桜は、<br>あと約${big(L.springs)}回。`;
+    dotGrid($('loveDots'), L.dots.length, () => 'on');
+    [...$('loveDots').children].forEach((d, i) => d.style.opacity = Math.max(.12, L.dots[i]).toFixed(2));
+    $('loveDots').setAttribute('aria-label', '毎年の春に、二人とも生きている確率。色がうすいほど低い');
+    $('loveDots').hidden = false;
+    const s = L.since;
+    $('miniL').innerHTML = `
+      <div><span class="k">ふたりの時間</span><span class="v num">${L.years.toFixed(1)}<small>年</small></span><span class="n">二人とも生きている期間</span></div>
+      <div><span class="k">会える日</span><span class="v num">${fmt(L.days)}<small>日</small></span><span class="n">今の頻度で</span></div>
+      ${s ? `<div><span class="k">付き合って</span><span class="v num">${fmt(s.dayN)}<small>日目</small></span><span class="n">今日で</span></div>`
+          : `<div><span class="k">同じ春</span><span class="v num">${Math.round(Math.min(r.springsLeft, L.springs) / Math.max(1, r.springsLeft) * 100)}<small>%</small></span><span class="n">あなたの春のうち</span></div>`}`;
+    let f = `点のひとつひとつが、これからの春です。色がうすくなるほど、その春に二人そろっている確率が下がります。`;
+    if (s){
+      f += s.isToday ? `今日は付き合って<b>${fmt(s.m)}</b>日目の記念日です。` : `付き合って<b>${fmt(s.m)}</b>日目は<b>${ymd(s.mDate)}</b>。`;
+      if (s.pGold !== null) f += `付き合って50年目（${s.gold.getFullYear()}年）を二人で迎える確率は約<b>${Math.round(s.pGold * 100)}%</b>。`;
+    }
+    $('footL').innerHTML = f;
+  } else {
+    const fp = r.fate !== null ? Math.round(r.fate * 100) : null;
+    if (fp !== null){
+      $('sayL').innerHTML = `運命の人に出会える<br>確率は、約${big(fp)}<small>%</small>。`;
+      dotGrid($('loveDots'), 100, i => i < fp ? 'on' : '');
+      $('loveDots').setAttribute('aria-label', `100人のうち${fp}人`);
+      $('loveDots').hidden = false;
+    } else if (r.peers){
+      $('sayL').innerHTML = `${r.peers.label}は、<br>約${big(r.peers.n / 10000)}万人。`;
+      $('loveDots').hidden = true;
+    }
+    const sx = v.sex === 'm' ? '男性' : v.sex === 'f' ? '女性' : '人';
+    $('miniL').innerHTML = `
+      ${r.peers ? `<div><span class="k">${v.sex === 'x' ? '同い年' : '同い年の異性'}</span><span class="v num">${fmt(r.peers.n / 10000)}<small>万人</small></span><span class="n">今も生きている</span></div>` : ''}
+      <div><span class="k">出会いから結婚</span><span class="v num">4.5<small>年</small></span><span class="n">平均の交際期間</span></div>
+      <div><span class="k">ネットで出会った</span><span class="v num">20<small>%</small></span><span class="n">最近結婚した夫婦</span></div>`;
+    let f = fp !== null
+      ? `今、結婚していない同い年の${sx}が100人いたら、50歳までに結婚するのは約${fp}人。ここでは「結婚」を、運命の人に出会えた目安にしています。`
+      : `${r.by}年生まれのうち、今も生きていると見込まれる人数です。出会っていない人のほうが、ずっと多い。`;
+    const meet = MEET[v.sex];
+    f += r.age < meet ? `結婚した夫婦が知り合ったのは、平均で<b>${meet}歳</b>のとき。あなたなら、あと約<b>${Math.ceil(meet - r.age)}</b>年後です。`
+                      : `結婚した夫婦が知り合ったのは平均<b>${meet}歳</b>。そこから平均<b>4.5</b>年付き合って結婚しています。`;
+    $('footL').innerHTML = f;
+  }
+  $('loveTitle').textContent = L ? 'ふたり' : '運命の人';
+  $('loveDots').classList.toggle('hund', !L);
+  $('chLove').hidden = !L && !r.peers && r.fate === null;
+
+  // 07 星の光
+  const S = r.past, N = r.next, by0 = new Date(v.birth + 'T00:00:00').getFullYear();
+  if (S){
+    const k = Math.round(r.age - S[1]);
+    $('sayStar').innerHTML = Math.abs(r.age - S[1]) <= 1.5
+      ? `いま見える<br>${S[0]}の光は、<br>あなたが生まれた年に<br>星を出た光。`
+      : `いま見える<br>${S[0]}の光は、<br>あなたが${big(k)}歳のころに<br>星を出た光。`;
+  } else {
+    $('sayStar').innerHTML = `あなたが生まれた年に<br>${N[0]}を出た光は、<br><b class="num" data-to="${Math.round(by0 + N[1])}" data-raw="1">${Math.round(by0 + N[1])}</b>年に届く。`;
+  }
+  const ref = S || N;
+  $('miniStar').innerHTML = `
+    <div><span class="k">${ref[0]}まで</span><span class="v num">${ref[1]}<small>光年</small></span><span class="n">${ref[2]}</span></div>
+    <div><span class="k">光が星を出た年</span><span class="v num">${Math.round(new Date().getFullYear() - ref[1])}<small>年</small></span><span class="n">いま見えている光</span></div>
+    ${N ? `<div><span class="k">次の星</span><span class="v num">${by0 + Math.round(N[1])}<small>年</small></span><span class="n">${N[0]}に、生まれた年の光</span></div>` : ''}`;
+  let fs = S ? `${S[0]}は${S[2]}。` : `${N[0]}は${N[1]}光年先にある、${N[2]}。`;
+  if (S && N) fs += N[1] <= 110
+    ? `あなたが生まれた年に${N[0]}（${N[2]}）を出た光は、<b>${by0 + Math.round(N[1])}年</b>、あなたが<b>${Math.round(N[1])}歳</b>のころに地球に届きます。`
+    : `あなたが生まれた年に${N[0]}（${N[2]}）を出た光は、<b>${by0 + Math.round(N[1])}年</b>に地球に届きます。`;
+  else if (!S) fs += `あなたがその星を見上げる${N[1]}歳のころ、届くのはあなたが生まれた年の光です。`;
+  $('footStar').innerHTML = fs;
+
+  // 08 皆既日食
+  const E = r.ecl;
+  $('chEcl').hidden = !E.length;
+  if (E.length){
+    $('sayEcl').innerHTML = `日本で皆既日食を<br>見られるのは、<br>あと${big(E.length)}回だけ。`;
+    $('evs').innerHTML = E.map(o => `<div class="ev"><span class="d num">${ymd(o.dt)}</span><span class="w">${o.w}・あなたは${Math.floor(o.ageThen)}歳</span><span class="p num">${o.p < .01 ? '1%未満' : Math.round(o.p * 100)}<small>見届けられる確率</small></span></div>`).join('').replace(/(\d+)<small>見届/g, '$1%<small>見届');
+    $('footEcl').innerHTML = `今世紀、日本の陸地で太陽が完全に隠れるのは、この${E.length}回だけ。皆既になるのは帯のように細い地域だけなので、その日はそこまで行って、晴れることを祈るしかありません。`;
+  }
+
+  // 再表示後の数字は、アニメーションせずそのまま見せる
+  document.querySelectorAll('.ch.in [data-to]').forEach(el => el.dataset.done = 1);
+  observe();
+  share(r);
+  if (!isExample){ try { localStorage.setItem('atonankai', JSON.stringify(v)); } catch(e){} }
+}
+
+/* 章が画面に入ったら、ふわっと出して数字を数え上げる */
+const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(el){
+  if (el.dataset.done || reduce) return; el.dataset.done = 1;
+  const to = +el.dataset.to, fx = +(el.dataset.fx || 0), t0 = performance.now(), dur = 1300;
+  const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fx ? (to * e).toFixed(fx) : el.dataset.raw ? String(Math.round(to * e)) : fmt(to * e); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+let io;
+function observe(){
+  const secs = document.querySelectorAll('.ch');
+  if (!('IntersectionObserver' in window)){ secs.forEach(s => s.classList.add('in')); return; }
+  if (!io) io = new IntersectionObserver(es => es.forEach(en => {
+    if (!en.isIntersecting) return;
+    en.target.classList.add('in'); en.target.querySelectorAll('[data-to]').forEach(countUp); io.unobserve(en.target);
+  }), {threshold: .25});
+  secs.forEach(s => { if (!s.classList.contains('in')) io.observe(s); });
+}
+
+/* 共有 */
+let cardTimer, shareBody = '';
+const PAGE_URL = 'https://jwllxaxxx-ux.github.io/atonankai/';
+// スマホの共有シート（使えるときだけ出す）。カード画像も一緒に渡す
+if (navigator.share) $('nshare').hidden = false;
+$('nshare').addEventListener('click', async () => {
+  const data = {title: 'あと何回', text: shareBody, url: PAGE_URL};
+  try {
+    const blob = await (await fetch($('card').src)).blob();
+    const file = new File([blob], 'atonankai.png', {type: 'image/png'});
+    if (navigator.canShare && navigator.canShare({files: [file]})) data.files = [file];
+  } catch(e){}
+  try { await navigator.share(data); }
+  catch(e){ if (e && e.name !== 'AbortError'){ try { delete data.files; await navigator.share(data); } catch(_){} } }
+});
+function shareLines(r){
+  const a = `わたしは、あと約${r.springsLeft}回桜を見られる。`;
+  let b;
+  if (r.love) b = `${r.love.nick}と見られる桜は、あと約${Math.round(r.love.springs)}回。`;
+  else if (r.fate !== null) b = `運命の人に出会える確率は、約${Math.round(r.fate * 100)}%。`;
+  else if (r.parent) b = `${r.parent.who}とは、あと約${fmt(r.parent.future)}日。`;
+  else b = `残りの週末は、あと約${fmt(r.weekends)}回。`;
+  return [a, b, 'あなたは？'];
+}
+function share(r){
+  const L = shareLines(r);
+  const body = L.join('\n') + '\n#あと何回';
+  const text = body + '\n' + PAGE_URL;
+  shareBody = body;
+  $('shareText').textContent = text;
+  $('xpost').href = 'https://x.com/intent/tweet?text=' + encodeURIComponent(body) + '&url=' + encodeURIComponent(PAGE_URL);
+  $('tpost').href = 'https://www.threads.net/intent/post?text=' + encodeURIComponent(text);
+  clearTimeout(cardTimer); cardTimer = setTimeout(() => drawCard(r, L), 150);
+}
+async function drawCard(r, L){
+  try { await document.fonts.ready; } catch(e){}
+  const W = 1200, H = 630, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(W * .75, -80, 40, W * .75, -80, 900);
+  g.addColorStop(0, '#3a1f35'); g.addColorStop(1, '#0b0d17');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // 花びら
+  let seed = r.springsLeft * 97 + 13; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 22; i++){
+    x.save(); x.translate(rnd() * W, rnd() * H); x.rotate(rnd() * Math.PI * 2); x.globalAlpha = .12 + rnd() * .25;
+    x.fillStyle = '#ffb3c6'; x.beginPath(); x.ellipse(0, 0, 10 + rnd() * 8, 5 + rnd() * 3, 0, 0, Math.PI * 2); x.fill(); x.restore();
+  }
+  // 春の点
+  const total = r.springsPast + r.springsLeft, cols = 26, size = 15, gap = 9;
+  const gx = W - 70 - cols * (size + gap) + gap, gy = H - 70 - Math.ceil(total / cols) * (size + gap) + gap;
+  for (let i = 0; i < total; i++){
+    const cx = gx + (i % cols) * (size + gap) + size / 2, cy = gy + Math.floor(i / cols) * (size + gap) + size / 2;
+    x.beginPath(); x.arc(cx, cy, size / 2, 0, Math.PI * 2);
+    x.fillStyle = i < r.springsPast ? '#2c3146' : '#ff8fab'; x.fill();
+  }
+  x.textBaseline = 'alphabetic';
+  x.font = '500 24px "Zen Kaku Gothic New", sans-serif'; x.fillStyle = '#9a9cb3';
+  x.fillText('あ と 何 回', 72, 92);
+  const M = s => `800 ${s}px "Shippori Mincho B1", serif`;
+  x.fillStyle = '#eeecf4'; x.font = M(60); x.fillText('あと約', 72, 200);
+  const w1 = x.measureText('あと約').width;
+  x.fillStyle = '#ff8fab'; x.font = M(120); x.fillText(String(r.springsLeft), 72 + w1 + 8, 200);
+  const w2 = x.measureText(String(r.springsLeft)).width;
+  x.fillStyle = '#eeecf4'; x.font = M(60); x.fillText('回、桜を見られる。', 72 + w1 + w2 + 16, 200);
+  x.font = '700 34px "Zen Kaku Gothic New", sans-serif'; x.fillStyle = '#c9cbdb';
+  let line = L[1]; while (x.measureText(line).width > W - 144 && line.length > 4) line = line.slice(0, -2) + '…';
+  x.fillText(line, 72, 270);
+  x.font = '700 30px "Zen Kaku Gothic New", sans-serif'; x.fillStyle = '#ff8fab'; x.fillText('あなたは？', 72, 330);
+  x.font = '500 22px "Zen Kaku Gothic New", sans-serif'; x.fillStyle = '#7d8099';
+  x.fillText('#あと何回', 72, H - 40);
+  $('card').src = c.toDataURL('image/png');
+}
+
+$('copy').addEventListener('click', async () => {
+  const t = $('shareText').textContent;
+  try { await navigator.clipboard.writeText(t); $('copy').textContent = 'コピーしました'; }
+  catch(e){ const s = window.getSelection(), rg = document.createRange(); rg.selectNodeContents($('shareText')); s.removeAllRanges(); s.addRange(rg); $('copy').textContent = '選択しました。コピーしてください'; }
+  setTimeout(() => $('copy').textContent = '文章とリンクをコピー', 2200);
+});
+function lock(){ // 入力が変わったら結果を閉じて、もう一度「結果を見る」を出す
+  if (document.body.classList.contains('locked')) return;
+  document.body.classList.add('locked');
+  document.querySelectorAll('.ch').forEach(s => s.classList.remove('in'));
+  document.querySelectorAll('[data-done]').forEach(el => delete el.dataset.done);
+  $('cta').hidden = false; $('show').disabled = false; $('counting').hidden = true;
+  $('ctaMsg').textContent = 'プロフィールが変わりました。もう一度数えます。';
+}
+const onInput = () => { isExample = false; lock(); render(); };
+$('f').addEventListener('input', onInput);
+$('f').addEventListener('change', onInput);
+$('f').addEventListener('submit', e => e.preventDefault());
+
+// 花びら
+(function(){
+  if (reduce) return;
+  const box = $('petals'), frag = document.createDocumentFragment();
+  for (let i = 0; i < 14; i++){
+    const p = document.createElement('i'), s = .7 + Math.random() * .8;
+    p.style.left = (Math.random() * 100) + '%';
+    p.style.transform = `scale(${s})`;
+    p.style.animationDuration = (11 + Math.random() * 10) + 's';
+    p.style.animationDelay = (-Math.random() * 20) + 's';
+    frag.appendChild(p);
+  }
+  box.appendChild(frag);
+})();
+
+document.body.classList.add('locked');
+$('show').addEventListener('click', () => {
+  const r = calc(read());
+  if (!r){ $('ctaMsg').textContent = '生年月日を入れてください。'; $('birth').focus(); return; }
+  $('show').disabled = true; $('counting').hidden = false; $('ctaMsg').textContent = 'あなたの残りの時間を数えています…';
+  setTimeout(() => {
+    document.body.classList.remove('locked'); $('cta').hidden = true;
+    render();
+    $('res').scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+  }, reduce ? 200 : 1600);
+});
+load(); render();
+</script>
+
+</body>
+</html>
