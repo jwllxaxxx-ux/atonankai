@@ -310,6 +310,7 @@ legend{font-size:13px;color:var(--sub);font-weight:500;padding:0;margin-bottom:6
     <p class="hint">画像を長押し（パソコンは右クリック）すると保存できます。</p>
     <p class="sharetext" id="shareText"></p>
     <div class="btns">
+      <button type="button" class="btn ghost" id="shuffle">別の一文にする</button>
       <button type="button" class="btn" id="nshare" hidden>共有する</button>
       <button type="button" class="btn" id="copy">文章とリンクをコピー</button>
       <a class="btn ghost" id="xpost" target="_blank" rel="noopener">Xに投稿する</a>
@@ -462,7 +463,7 @@ function calc(v){
   const ecl = ECL.map(([d, w]) => { const dt = new Date(d + 'T00:00:00'), tt = (dt - today) / DAY / YEAR;
     return {dt, w, ageThen: age + tt, p: tt > 0 ? surv(v.sex, age, tt) : 0}; }).filter(o => o.dt > today);
   const fate = !love && age < 50 ? Math.max(0, 1 - unm(v.sex, 50) / unm(v.sex, age)) : null;
-  return {age, e, end, springsLeft, springsPast, daysLeft, target, pTarget, by, births, sameDayAlive, parent, love, peers, fate, past, next, ecl,
+  return {age, e, end, springsLeft, springsPast, daysLeft, target, pTarget, by, births, sameDayAlive, parent, love, peers, fate, past, next, ecl, birthStr: v.birth,
     weekends: Math.floor(daysLeft / 7), newyears: countDates(today, end, 0, 1), moons: e * 12.3683, lived: (today - b) / DAY};
 }
 
@@ -643,16 +644,37 @@ $('nshare').addEventListener('click', async () => {
   try { await navigator.share(data); }
   catch(e){ if (e && e.name !== 'AbortError'){ try { delete data.files; await navigator.share(data); } catch(_){} } }
 });
-function shareLines(r){
-  const a = `わたしは、あと約${r.springsLeft}回桜を見られる。`;
-  let b;
-  if (r.love) b = `${r.love.nick}と見られる桜は、あと約${Math.round(r.love.springs)}回。`;
-  else if (r.fate !== null) b = `運命の人に出会える確率は、約${Math.round(r.fate * 100)}%。`;
-  else if (r.parent) b = `${r.parent.who}とは、あと約${fmt(r.parent.future)}日。`;
-  else b = `残りの週末は、あと約${fmt(r.weekends)}回。`;
-  return [a, b, 'あなたは？'];
+// 2行目の候補。結果が出たら、この中からランダムに1つ選ぶ
+function shareCands(r){
+  const c = [];
+  if (r.love) c.push(`${r.love.nick}と見られる桜は、あと約${Math.round(r.love.springs)}回。`);
+  if (r.fate !== null) c.push(`運命の人に出会える確率は、約${Math.round(r.fate * 100)}%。`);
+  if (r.parent) c.push(`${r.parent.who}と過ごせるのは、あと約${fmt(r.parent.future)}日。`);
+  c.push(`残りの週末は、あと約${fmt(r.weekends)}回。`);
+  c.push(`見られる満月は、あと約${fmt(r.moons)}回。`);
+  c.push(`${r.target}歳を迎える確率は、約${Math.round(r.pTarget * 100)}%。`);
+  if (r.births) c.push(`同じ日に生まれた人は、約${fmt(r.births / 365)}人。`);
+  const S = r.past, N = r.next, by0 = new Date(r.birthStr + 'T00:00:00').getFullYear();
+  if (S && Math.abs(r.age - S[1]) <= 1.5) c.push(`いま見える${S[0]}の光は、わたしが生まれた年に星を出た光。`);
+  else if (S) c.push(`わたしが${Math.round(r.age - S[1])}歳のころに${S[0]}を出た光が、いま届いている。`);
+  else if (N) c.push(`わたしが生まれた年に${N[0]}を出た光は、${by0 + Math.round(N[1])}年に届く。`);
+  if (r.ecl.length){ const e = r.ecl[r.ecl.length - 1];
+    c.push(e.p >= .01 ? `${e.dt.getFullYear()}年の皆既日食を見届けられる確率は、約${Math.round(e.p * 100)}%。` : `日本で皆既日食を見られるのは、あと${r.ecl.length}回だけ。`); }
+  return c;
 }
-function share(r){
+let lastR = null, pick = -1;
+function shareLines(r){
+  const c = shareCands(r);
+  if (r !== lastR){ // 新しく数え直したときだけ選び直す
+    let k; do { k = Math.floor(Math.random() * c.length); } while (c.length > 1 && k === pick);
+    pick = k; lastR = r;
+  }
+  return [`わたしは、あと約${r.springsLeft}回桜を見られる。`, c[pick % c.length], 'あなたは？'];
+}
+$('shuffle').addEventListener('click', () => { if (!lastR) return;
+  const n = shareCands(lastR).length; pick = (pick + 1 + Math.floor(Math.random() * Math.max(1, n - 1))) % n; share(lastR, true); });
+function share(r, keep){
+  if (keep) lastR = r;
   const L = shareLines(r);
   const body = L.join('\n') + '\n#あと何回';
   const text = body + '\n' + PAGE_URL;
