@@ -380,7 +380,6 @@ let isExample = true;
 
 function load(){
   let v = {...DEFAULTS};
-  try { const s = JSON.parse(localStorage.getItem('atonankai') || 'null'); if (s) { v = {...v, ...s}; isExample = false; } } catch(e){}
   for (const k of ['birth','pAge','pSex','visits','perVisit','liveTil','nick','qBirth','qSex','since','freq']) $(k).value = v[k];
   for (const [n, val] of [['sex', v.sex], ['has', v.has]]){ const r = document.querySelector(`input[name=${n}][value="${val}"]`); if (r) r.checked = true; }
   const t = new Date().toISOString().slice(0,10); $('birth').max = t; $('qBirth').max = t; $('since').max = t;
@@ -606,7 +605,6 @@ function render(){
   document.querySelectorAll('.ch.in [data-to]').forEach(el => el.dataset.done = 1);
   observe();
   share(r);
-  if (!isExample){ try { localStorage.setItem('atonankai', JSON.stringify(v)); } catch(e){} }
 }
 
 /* 章が画面に入ったら、ふわっと出して数字を数え上げる */
